@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Windows 문제 해결</title>
+    <style>
+        /* 기본 설정 */
+        body { 
+            margin: 0; padding: 0; 
+            background: black; /* 시작은 검은 화면 (CMD 느낌) */
+            overflow: hidden; 
+            font-family: 'Segoe UI', 'Malgun Gothic', sans-serif;
+            cursor: none; 
+            user-select: none; 
+        }
+        
+        /* 1단계: 시스템 정보 출력 (CMD 스타일) */
+        #terminal { 
+            position: absolute; top: 40px; left: 40px; z-index: 2; 
+            color: #e0e0e0; font-family: 'Consolas', monospace; font-size: 20px; line-height: 1.6; 
+        }
+        .highlight { color: #fff; font-weight: bold; }
+        .yellow { color: #f1c40f; }
+        .blue { color: #3498db; }
+        
+        /* 2단계: 블루스크린 (파란색 복귀!) */
+        #bsod { 
+            display: none; 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: #0078D7; /* 근본 블루스크린 색상 */
+            z-index: 10; 
+            color: white; 
+            padding: 10% 15%; 
+            box-sizing: border-box;
+        }
+        .sad-face { font-size: 150px; margin-bottom: 30px; font-weight: lighter; }
+        .error-title { font-size: 30px; margin-bottom: 40px; font-weight: lighter; line-height: 1.4; }
+        #percentage { font-size: 30px; margin-bottom: 40px; }
+        
+        .qr-section { display: flex; align-items: flex-start; margin-top: 40px; }
+        .qr-img { width: 130px; height: 130px; margin-right: 30px; background: white; padding: 10px; }
+        .stop-code-info { font-size: 16px; line-height: 1.6; color: #e0e0e0; margin-top: 10px; }
+        .stop-code-val { font-size: 18px; font-weight: bold; margin-top: 5px; display: block; }
+
+        /* 3단계: 피날레 화면 */
+        #final { 
+            display: none; 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: black; 
+            z-index: 20; 
+            flex-direction: column; justify-content: center; align-items: center; text-align: center; color: white; 
+        }
+    </style>
+</head>
+<body>
+    <div id="terminal"></div>
+
+    <div id="bsod">
+        <div class="sad-face">:(</div>
+        <div class="error-title">
+            PC에 문제가 발생하여 다시 시작해야 합니다.<br>
+            일부 오류 정보를 수집하고 있습니다. 그런 다음 자동으로 다시 시작합니다.
+        </div>
+        <div id="percentage">0% 완료</div>
+        
+        <div class="qr-section">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://www.windows.com/stopcode" class="qr-img" alt="QR Code">
+            <div class="stop-code-info">
+                이 문제와 가능한 해결 방법에 대한 자세한 내용은 https://www.windows.com/stopcode를 참조하세요.<br><br>
+                지원 담당자에게 문의할 경우 다음 정보를 제공하세요.<br>
+                중지 코드: <span class="stop-code-val">CRITICAL_PROCESS_DIED</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="final">
+        <h1 style="font-size: 70px; margin-bottom: 30px;">가람이의 방학숙제 끝!!!</h1>
+        <h2 style="font-size: 50px; color: yellow; margin-bottom: 30px; font-weight: bold;">배움과제: BadUSB</h2>
+        <h3 style="font-size: 30px; color: #00ffff; margin-bottom: 120px;">심미감성: "폭발이 예술이면 블루스크린도 예술이다!"</h3>
+        <p style="font-size: 20px; color: gray;">[종료하려면 F11 또는 ESC를 누르세요]</p>
+    </div>
+
+    <script>
+        // -----------------------------------------------------------
+        // [1] 실제 시스템 정보 수집 (자바스크립트로 가능한 진짜 정보들)
+        // -----------------------------------------------------------
+        const terminal = document.getElementById('terminal');
+        
+        // 크롬 버전 파싱
+        const ua = navigator.userAgent;
+        let browserVer = "Unknown";
+        if(ua.includes("Chrome")) {
+            browserVer = "Chrome " + ua.split("Chrome/")[1].split(" ")[0];
+        } else if(ua.includes("Edg")) {
+            browserVer = "Edge " + ua.split("Edg/")[1].split(" ")[0];
+        }
+
+        // RAM 정보 (일부 브라우저만 지원, 없으면 기본값)
+        const memory = navigator.deviceMemory ? navigator.deviceMemory + " GB" : "8 GB (System Default)";
+        const cores = navigator.hardwareConcurrency ? navigator.hardwareConcurrency + " Cores" : "Unknown";
+
+        const systemData = [
+            "Microsoft Windows [Version 10.0.19045.4291]",
+            "(c) Microsoft Corporation. All rights reserved.",
+            "",
+            "C:\\WINDOWS\\system32> systeminfo",
+            "",
+            "호스트 이름:             " + (window.location.hostname || "DESKTOP-SCHOOL-LAB"),
+            "OS 이름:                 Microsoft Windows 10 Education",
+            "OS 버전:                 10.0.19045 N/A 빌드 19045",
+            "시스템 제조업체:         Samsung Electronics",
+            "시스템 종류:             x64-based PC",
+            "프로세서(CPU):           " + cores + " Logical Processor(s) Installed.",
+            "메모리(RAM):             " + memory,
+            "",
+            "----- 브라우저 환경 변수 -----",
+            `브라우저 버전:           ${browserVer}`,
+            `화면 해상도:             ${window.screen.width} x ${window.screen.height}`,
+            `색상 깊이:               ${window.screen.colorDepth}-bit`,
+            `언어 설정:               ${navigator.language}`,
+            `플랫폼:                  ${navigator.platform}`,
+            `사용자 에이전트:         ${ua.substring(0, 40)}...`,
+            "",
+            "----- 네트워크 구성 -----",
+            "네트워크 카드 검색 중..."
+        ];
+
+        // IP 가져오기 (비동기)
+        fetch('https://api.ipify.org?format=json')
+            .then(response => response.json())
+            .then(data => {
+                systemData.push(`IPv4 주소:               <span class='highlight'>${data.ip}</span>`);
+                systemData.push("상태:                    <span class='yellow'>연결됨 (Internet Access)</span>");
+                finishLog();
+            })
+            .catch(() => {
+                systemData.push("IPv4 주소:               127.0.0.1 (Localhost)");
+                systemData.push("상태:                    오프라인");
+                finishLog();
+            });
+
+        function finishLog() {
+            systemData.push("");
+            systemData.push("시스템 진단 중 치명적인 오류 발생...");
+            systemData.push("메모리 덤프 생성 중...");
+            startTyping();
+        }
+
+        // -----------------------------------------------------------
+        // [2] 타자 치는 효과
+        // -----------------------------------------------------------
+        let lineIndex = 0;
+        function startTyping() {
+            if (lineIndex < systemData.length) {
+                const p = document.createElement('div');
+                p.innerHTML = systemData[lineIndex];
+                terminal.appendChild(p);
+                lineIndex++;
+                window.scrollTo(0, document.body.scrollHeight);
+                setTimeout(startTyping, 100); // 타자 속도 (빠르게)
+            } else {
+                // 다 치고 2초 뒤 블루스크린
+                setTimeout(triggerBSOD, 2000);
+            }
+        }
+
+        // -----------------------------------------------------------
+        // [3] 블루스크린 실행
+        // -----------------------------------------------------------
+        function triggerBSOD() {
+            terminal.style.display = 'none'; // 터미널 숨김
+            document.getElementById('bsod').style.display = 'block';
+            
+            let percent = 0;
+            const percentDiv = document.getElementById('percentage');
+            
+            function updatePercent() {
+                if (percent < 100) {
+                    // 리얼한 멈칫멈칫 로딩
+                    if (Math.random() > 0.6) {
+                        percent += Math.floor(Math.random() * 5) + 1;
+                        if (percent > 100) percent = 100;
+                        percentDiv.innerText = percent + "% 완료";
+                    }
+                    setTimeout(updatePercent, Math.random() * 400 + 100); 
+                } else {
+                    setTimeout(showFinale, 2500); // 100% 후 2.5초 뒤 피날레
+                }
+            }
+            updatePercent();
+        }
+
+        // -----------------------------------------------------------
+        // [4] 피날레 화면
+        // -----------------------------------------------------------
+        function showFinale() {
+            document.getElementById('bsod').style.display = 'none';
+            const finalDiv = document.getElementById('final');
+            finalDiv.style.display = 'flex';
+        }
+
+        // 전체화면 유도
+        document.body.addEventListener('click', () => {
+            document.documentElement.requestFullscreen().catch((e)=>{});
+        });
+    </script>
+</body>
+</html>
